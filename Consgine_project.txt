@@ -1,0 +1,39 @@
+Course Project · 20% of grade
+The Project
+Pick a problem and solve it.
+
+How the project works
+The goal is rigorous application. You'll work in groups of up to four, and the goal is to use the methods learned in class in a real setting.
+
+🧵 Improve your data mining as it goes
+Choose a dataset and frame a problem. Then, as each new method arrives: clustering & PCA (W7), neural networks (W8), CNNs (W9), transformers (W10) apply it to your own data if relevant. By the final week you'll have the tools to deal with all common types of data.
+
+What a strong project looks like
+Framing. Inputs, target, and evaluation metric defined before modeling.
+Baseline always. Start with a naive baseline (majority class, predict-the-mean).
+Broad. Compare several model families across the toolbox, including at least one advanced method (boosting and/or a neural approach).
+Leak-proof. Test set untouched until the end; CV for tuning; pipelines for preprocessing.
+Interpreted & honest. Explain why a model works (feature importance, SHAP, other method) and study the failure modes.
+Find a dataset
+No toy sets already used in the assignemnts (MNIST, Iris). Aim for >1000 rows, and a simple question about the data.
+
+UCI Machine Learning Repository
+Hundreds of well-documented, classic datasets across domains.
+
+Browse →Links to an external site.
+OpenML
+Thousands of datasets with metadata and a clean Python API (openml)
+
+Browse →Links to an external site.
+Hugging Face Datasets & Google Dataset Search
+For text/image projects, Hugging Face DatasetsLinks to an external site.; to search across the whole web, Google Dataset SearchLinks to an external site.. Also Our World in DataLinks to an external site. for real socioeconomic series.
+
+Browse →Links to an external site.
+Timeline & deliverables
+Week 6 Kickoff. Form your group, choose a dataset, frame the problem. Start EDA + a baseline with the tools you have.
+Weeks 7-10 Deep learning methods. Implement the latest methods to your dataset if it fits the data.
+Week 9 Proposal. One page with a dataset, a problem, evaluation metrics, and a baseline plan.
+Weeks 11-12 Project help. Dedicated in-class time; examples using all the different methods.
+End of Week 12 Report due. 6-8 pages: Problem → Data → Methods → Results → Interpretation → Limitations → Conclusion.
+Run it on the cluster
+Heavier projects might require you to run jobs on the cluster. Consult the cluster documentation for templates and help on how to setup a job.

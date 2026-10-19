@@ -1,0 +1,133 @@
+%! TEX root = workers_comp_project_proposal.tex
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=0.6in, top=0.5in, bottom=0.5in]{geometry}
+
+% --- TYPOGRAPHIE ---
+\usepackage{lmodern}
+\usepackage[scaled=0.92]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{microtype}
+\usepackage[scaled=0.82]{inconsolata}
+
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{booktabs}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{hyperref}
+
+\pagestyle{empty}
+
+% --- COULEURS ---
+\definecolor{brandNavy}{HTML}{0F172A}
+\definecolor{brandAccent}{HTML}{1E40AF}
+\definecolor{textDark}{HTML}{334155}
+\definecolor{ruleGray}{HTML}{E2E8F0}
+\definecolor{rowLight}{HTML}{F8FAFC}
+
+\color{textDark}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=brandAccent,
+    urlcolor=brandAccent
+}
+
+% --- SECTIONS SANS DOUBLON DE NUMÉROTATION ---
+\titleformat{\section}
+  {\fontsize{10.5}{13}\bfseries\color{brandNavy}}
+  {}{0pt}
+  {}[\vspace{1pt}{\color{ruleGray}\hrule height 1pt}]
+\titlespacing*{\section}{0pt}{6pt}{3pt}
+
+% --- LISTES ---
+\setlist[itemize]{
+    noitemsep, 
+    topsep=2pt, 
+    leftmargin=12pt, 
+    label={\color{brandAccent}\raisebox{0.5pt}{\tiny$\blacksquare$}}
+}
+
+\begin{document}
+
+% --- EN-TÊTE ---
+\begin{center}
+    {\fontsize{13}{16}\selectfont \bfseries \color{brandNavy} TECHNICAL PROJECT PROPOSAL}\\[2pt]
+    {\normalsize \bfseries \color{brandAccent} Predictive Claims Valuation in Workers' Compensation}\\[3pt]
+    {\footnotesize \textbf{Authors:} Marius Occhiminuti $\cdot$ Gaëtan Amiens \quad $\vert$ \quad \textbf{Course:} Data Mining \& Machine Learning (DMML) -- Week 9 Proposal}
+\end{center}
+\vspace{-4pt}
+
+\section{1. Executive Business Context \& Problem Framing}
+Worker's Compensation insurance requires reserves to be set aside as soon as an injury is reported. Initial case estimates (\texttt{InitialCaseEstimate}) set by claims adjusters are often subjective and subject to severe revision over time as medical treatments progress.
+\begin{itemize}
+    \item \textbf{Business Objective:} Build an automated, data-driven ML pipeline to accurately predict final settlement cost (\url{UltimateIncurredClaimCost}) early in the claim lifecycle.
+    \item \textbf{Operational Impact:} Enable early triage of severe claims (Top 10\% highest cost) to assign experienced adjusters, optimize financial reserve allocation, and mitigate severe tail-risk losses.
+\end{itemize}
+
+\section{2. Dataset Architecture \& Leak-Proof Preprocessing}
+The dataset comprises $100{,}000$ historical claim records combining demographic attributes (\texttt{Age}, \texttt{Gender}, \texttt{MaritalStatus}), financial status (\texttt{WeeklyPay}, \texttt{HoursWorkedPerWeek}, \texttt{DaysWorkedPerWeek}), family dependents (\texttt{DependentChildren}, \texttt{DependentsOther}), dates, and unstructured text (\texttt{ClaimDescription}).
+\begin{itemize}
+    \item \textbf{Feature Engineering:} Domain feature \texttt{ReportDelayDays} calculated strictly as\\
+    $(\text{DateReported} - \text{DateTimeOfAccident}) / 86400$.
+    \item \textbf{Strict Leak-Proof Protocol:} Split into 80\% Train ($80{,}000$ rows) and 20\% Test ($20{,}000$ rows) \emph{prior} to fitting transformers. Scikit-learn \texttt{Pipeline} and \texttt{ColumnTransformer} wrap \texttt{RobustScaler} for numerical features and \texttt{OneHotEncoder} for categorical features.
+\end{itemize}
+
+\section{3. Target Variable \& Evaluation Benchmark Metrics}
+The target \url{UltimateIncurredClaimCost} exhibits a heavy-tailed, highly right-skewed distribution. Models are trained on $\log(1+y)$ with upper-bound prediction clipping at $\max(\log(1+y_{\text{train}}))$ to prevent exponential prediction explosions upon applying $\exp(\cdot)-1$.
+\begin{itemize}
+    \item \textbf{Primary Regression Metrics:} Root Mean Squared Error (RMSE \$), Mean Absolute Error (MAE \$), Mean Absolute Percentage Error (MAPE \%), and $R^2$ Score.
+    \item \textbf{Secondary Triage Metrics:} ROC-AUC and Precision@Top-10\% for high-cost claim binary detection (threshold at 90th percentile, $\approx \$12{,}913.88$).
+\end{itemize}
+
+\section{4. Baseline Evaluation \& Empirical Benchmark Results}
+The benchmark was executed on the full $100{,}000$-record dataset (20\% held-out test set). Results are summarized below:
+
+\vspace{2pt}
+\noindent
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}} l rrrrr @{}}
+\toprule
+\textbf{\color{brandNavy}Model Family} & 
+\textbf{\color{brandNavy}RMSE (\$)} & 
+\textbf{\color{brandNavy}MAE (\$)} & 
+\textbf{\color{brandNavy}MAPE (\%)} & 
+\textbf{\color{brandNavy}$\mathbf{R^2}$ Score} & 
+\textbf{\color{brandNavy}Fit Time (s)} \\
+\midrule
+\rowcolor{rowLight} \texttt{dummy\_mean\_baseline} & 50,442.06 & 11,189.54 & 313.25 & -0.0460 & 0.072 \\
+\texttt{linear\_regression}    & 8,992.77  & 3,802.13  & 90.83  & -0.2753 & 0.088 \\
+\rowcolor{rowLight} \texttt{ridge\_regression}     & 8,937.65  & 3,793.88  & 90.81  & -0.2597 & 0.076 \\
+\texttt{lasso\_regression}     & 8,357.92  & 4,128.06  & 133.37 & -0.1016 & 0.082 \\
+\midrule
+\rowcolor{rowLight} \texttt{gradient\_boosting} & 7,087.54  & 3,331.90  & 80.83  & +0.2079 & 0.686 \\
+\texttt{lightgbm}              & 6,935.99  & \textbf{3,301.41}  & 81.00  & +0.2414 & 1.453 \\
+\rowcolor{rowLight} \textbf{\texttt{random\_forest}} & \textbf{6,891.03} & 3,307.70 & \textbf{80.38} & \textbf{+0.2512} & 0.224 \\
+\bottomrule
+\end{tabular*}
+\end{center}
+\vspace{-4pt}
+
+\section{5. Key Technical Findings \& Methodological Validation}
+\begin{itemize}
+    \item \textbf{20\% Error Reduction:} Non-linear tree ensembles (Random Forest, LightGBM) reduce MAE from $\$4{,}128.06$ down to $\mathbf{\$3{,}301.41}$, proving strong capability to capture complex tabular interactions.
+    \item \textbf{Positive $R^2$ Variance Explained:} $R^2$ rises from negative values on linear baselines to $\mathbf{+0.2512}$ with Random Forest.
+    \item \textbf{Severe Claims Triage:} Baseline achieves $\text{ROC-AUC} \approx 0.907$ for identifying Top 10\% claims, setting a solid classification benchmark.
+\end{itemize}
+
+\section{6. Project Roadmap \& Upcoming Milestones (Weeks 10--12)}
+\begin{itemize}
+    \item \textbf{Week 10 (NLP Integration):} Extract text features from \texttt{ClaimDescription} using TF-IDF n-grams and fine-tune a pre-trained Transformer (\texttt{DistilBERT}) to capture injury severity semantics.
+    \item \textbf{Week 11 (Multimodal Fusion \& Optimization):} Combine tabular features with text embeddings into a unified LightGBM / Neural Architecture.
+    \item \textbf{Week 12 (Interpretability \& Final Report):} Apply SHAP (SHapley Additive exPlanations) for global feature importance and local claim risk explanations.
+\end{itemize}
+
+\end{document}

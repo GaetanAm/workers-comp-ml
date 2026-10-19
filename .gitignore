@@ -1,0 +1,21 @@
+# Environnement virtuel & Cache Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Jeux de données volumineux (à conserver uniquement en local)
+*.csv
+
+# Fichiers temporaires de compilation LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Configuration VS Code & OS
+.vscode/
+.DS_Store
