@@ -67,15 +67,14 @@
 \section{1. Executive Business Context \& Problem Framing}
 Worker's Compensation insurance requires reserves to be set aside as soon as an injury is reported. Initial case estimates (\texttt{InitialCaseEstimate}) set by claims adjusters are often subjective and subject to severe revision over time as medical treatments progress.
 \begin{itemize}
-    \item \textbf{Business Objective:} Build an automated, data-driven ML pipeline to accurately predict final settlement cost (\url{UltimateIncurredClaimCost}) early in the claim lifecycle.
+    \item \textbf{Business Objective:} Build an automated, data-driven ML pipeline to accurately predict final settlement cost (\texttt{UltimateIncurred\allowbreak{}ClaimCost}) early in the claim lifecycle.
     \item \textbf{Operational Impact:} Enable early triage of severe claims (Top 10\% highest cost) to assign experienced adjusters, optimize financial reserve allocation, and mitigate severe tail-risk losses.
 \end{itemize}
 
 \section{2. Dataset Architecture \& Leak-Proof Preprocessing}
 The dataset comprises $100{,}000$ historical claim records combining demographic attributes (\texttt{Age}, \texttt{Gender}, \texttt{MaritalStatus}), financial status (\texttt{WeeklyPay}, \texttt{HoursWorkedPerWeek}, \texttt{DaysWorkedPerWeek}), family dependents (\texttt{DependentChildren}, \texttt{DependentsOther}), dates, and unstructured text (\texttt{ClaimDescription}).
 \begin{itemize}
-    \item \textbf{Feature Engineering:} Domain feature \texttt{ReportDelayDays} calculated strictly as\\
-    $(\text{DateReported} - \text{DateTimeOfAccident}) / 86400$.
+    \item \textbf{Feature Engineering:} Domain feature \texttt{ReportDelayDays} calculated strictly as $(\text{DateReported} - \text{DateTimeOfAccident}) / 86{,}400\text{ s}$ (converting seconds to days).
     \item \textbf{Strict Leak-Proof Protocol:} Split into 80\% Train ($80{,}000$ rows) and 20\% Test ($20{,}000$ rows) \emph{prior} to fitting transformers. Scikit-learn \texttt{Pipeline} and \texttt{ColumnTransformer} wrap \texttt{RobustScaler} for numerical features and \texttt{OneHotEncoder} for categorical features.
 \end{itemize}
 
