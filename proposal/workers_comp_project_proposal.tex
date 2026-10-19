@@ -79,7 +79,7 @@ The dataset comprises $100{,}000$ historical claim records combining demographic
 \end{itemize}
 
 \section{3. Target Variable \& Evaluation Benchmark Metrics}
-The target \url{UltimateIncurredClaimCost} exhibits a heavy-tailed, highly right-skewed distribution. Models are trained on $\log(1+y)$ with upper-bound prediction clipping at $\max(\log(1+y_{\text{train}}))$ to prevent exponential prediction explosions upon applying $\exp(\cdot)-1$.
+The target \path|UltimateIncurredClaimCost| exhibits a heavy-tailed, highly right-skewed distribution. Models are trained on $\log(1+y)$ with upper-bound prediction clipping at $\max(\log(1+y_{\text{train}}))$ to prevent exponential prediction explosions upon applying $\exp(\cdot)-1$.
 \begin{itemize}
     \item \textbf{Primary Regression Metrics:} Root Mean Squared Error (RMSE \$), Mean Absolute Error (MAE \$), Mean Absolute Percentage Error (MAPE \%), and $R^2$ Score.
     \item \textbf{Secondary Triage Metrics:} ROC-AUC and Precision@Top-10\% for high-cost claim binary detection (threshold at 90th percentile, $\approx \$12{,}913.88$).
