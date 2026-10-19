@@ -13,6 +13,13 @@ In Workers' Compensation insurance, setting accurate financial reserves early in
 
 ---
 
+## 💾 Dataset Access
+The dataset `workers_comp.csv` (100,000 records) is hosted on OpenML:
+- **OpenML Dataset:** [Workers' Compensation Claims (ID 42876)](https://www.openml.org/search?type=data&sort=runs&id=42876&status=active)
+- **Local Setup:** Download the dataset from OpenML, save it as `workers_comp.csv`, and place it at the root of the project repository.
+
+---
+
 ## 🏗️ Pipeline & Leak-Proof Architecture
 - **Dataset Size:** 100,000 records (80,000 Train / 20,000 Test).
 - **Domain Feature Engineering:** Engineered `ReportDelayDays` calculated strictly as `(DateReported - DateTimeOfAccident) / 86400`.
