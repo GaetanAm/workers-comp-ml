@@ -1,10 +1,11 @@
 # ==============================================================================
-# DMML - Course Project: Workers' Compensation Model Zoo (W1-W6)
-# Inspired strictly by TD W1 (EDA), W3 (Regression), W5 (Ensembles) & W6 (Boosting)
+# DMML - Course Project: Workers' Compensation Model Zoo (W1-W10)
+# Inspired strictly by TD W1 (EDA), W3 (Regression), W5 (Ensembles), W6 (Boosting) & W10 (Text Processing)
 # ==============================================================================
 
 import os
 import warnings
+from pathlib import Path
 from time import perf_counter
 
 import numpy as np
@@ -14,6 +15,7 @@ import seaborn as sns
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, RobustScaler
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.dummy import DummyRegressor
@@ -31,32 +33,34 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.20
 
 
+def resolve_data_path(csv_filename: str = "workers_comp.csv") -> str:
+    """
+    Dynamically locate workers_comp.csv relative to script location or working directory.
+    """
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        Path(csv_filename),                        # Terminal CWD
+        script_dir / csv_filename,                 # src/workers_comp.csv
+        script_dir.parent / csv_filename,          # Project/workers_comp.csv
+    ]
+    for p in candidates:
+        if p.exists():
+            return str(p)
+    
+    checked = "\n".join([f" - {p.resolve()}" for p in candidates])
+    raise FileNotFoundError(
+        f"Le fichier '{csv_filename}' n'a pas été trouvé.\nChemins vérifiés:\n{checked}"
+    )
+
+
 def load_and_preprocess_claims(csv_path: str = "workers_comp.csv") -> pd.DataFrame:
     """
     Load dataset and engineer domain features.
     Inspired by W1 Feature Engineering (add_titanic_features).
     """
-    if not os.path.exists(csv_path):
-        print(f"File '{csv_path}' not found locally. Generating synthetic data for local test...")
-        np.random.seed(RANDOM_STATE)
-        n = 5000
-        df = pd.DataFrame({
-            'Age': np.random.randint(18, 65, n),
-            'Gender': np.random.choice(['M', 'F'], n),
-            'MaritalStatus': np.random.choice(['S', 'M', 'D'], n),
-            'PartTimeFullTime': np.random.choice(['P', 'F'], n),
-            'WeeklyPay': np.random.exponential(800, n) + 200,
-            'HoursWorkedPerWeek': np.random.randint(20, 50, n),
-            'DaysWorkedPerWeek': np.random.randint(3, 6, n),
-            'DependentChildren': np.random.randint(0, 4, n),
-            'DependentsOther': np.random.randint(0, 2, n),
-            'DateTimeOfAccident': pd.date_range('2020-01-01', periods=n, freq='h'),
-            'DateReported': pd.date_range('2020-01-02', periods=n, freq='h'),
-            'InitialCaseEstimate': np.random.exponential(3000, n) + 500,
-        })
-        df['UltimateIncurredClaimCost'] = df['InitialCaseEstimate'] * np.random.lognormal(0.2, 0.8, n)
-    else:
-        df = pd.read_csv(csv_path)
+    resolved_path = resolve_data_path(csv_path)
+    print(f"Chargement du jeu de données depuis : {resolved_path}")
+    df = pd.read_csv(resolved_path)
     
     # Datetime parsing
     df['DateTimeOfAccident'] = pd.to_datetime(df['DateTimeOfAccident'])
@@ -70,13 +74,17 @@ def load_and_preprocess_claims(csv_path: str = "workers_comp.csv") -> pd.DataFra
     df['AccidentYear'] = df['DateTimeOfAccident'].dt.year
     df['AccidentMonth'] = df['DateTimeOfAccident'].dt.month
     
+    # Handle text missing values if any
+    if 'ClaimDescription' in df.columns:
+        df['ClaimDescription'] = df['ClaimDescription'].fillna("")
+    
     return df
 
 
-def build_preprocessor(numeric_cols: list, categorical_cols: list) -> ColumnTransformer:
+def build_preprocessor(numeric_cols: list, categorical_cols: list, text_col: str = None) -> ColumnTransformer:
     """
-    Build a leak-proof ColumnTransformer.
-    Inspired by W3/W4 pipeline standards.
+    Build a leak-proof ColumnTransformer handling numerical, categorical, and text (TF-IDF) features.
+    Inspired by W3/W4 & W10 pipeline standards.
     """
     numeric_transformer = Pipeline(steps=[
         ('scaler', RobustScaler())
@@ -86,12 +94,18 @@ def build_preprocessor(numeric_cols: list, categorical_cols: list) -> ColumnTran
         ('onehot', OneHotEncoder(handle_unknown='ignore', sparse_output=False))
     ])
     
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', numeric_transformer, numeric_cols),
-            ('cat', categorical_transformer, categorical_cols)
-        ]
-    )
+    transformers = [
+        ('num', numeric_transformer, numeric_cols),
+        ('cat', categorical_transformer, categorical_cols)
+    ]
+    
+    if text_col:
+        text_transformer = Pipeline(steps=[
+            ('tfidf', TfidfVectorizer(max_features=300, stop_words='english', ngram_range=(1, 2)))
+        ])
+        transformers.append(('text', text_transformer, text_col))
+    
+    preprocessor = ColumnTransformer(transformers=transformers)
     
     return preprocessor
 
@@ -156,8 +170,11 @@ if __name__ == "__main__":
         'DependentChildren', 'DependentsOther', 'ReportDelayDays', 'InitialCaseEstimate'
     ]
     categorical_features = ['Gender', 'MaritalStatus', 'PartTimeFullTime']
+    text_feature = 'ClaimDescription'
+    has_text = text_feature in raw_df.columns
     
-    X = raw_df[numeric_features + categorical_features]
+    feature_cols = numeric_features + categorical_features + ([text_feature] if has_text else [])
+    X = raw_df[feature_cols]
     y = raw_df[target_col]
     
     # Leak-proof train/test split (W3 convention)
@@ -168,7 +185,11 @@ if __name__ == "__main__":
     print(f"Data Split: Train = {X_train.shape} rows | Test = {X_test.shape} rows")
     
     # Preprocessing & Model Zoo
-    preprocessor = build_preprocessor(numeric_features, categorical_features)
+    preprocessor = build_preprocessor(
+        numeric_features, 
+        categorical_features, 
+        text_col=text_feature if has_text else None
+    )
     
     models = {
         # --- Baselines (W3) ---
@@ -206,5 +227,5 @@ if __name__ == "__main__":
     
     benchmark_df = evaluate_regression_models(models, X_train, X_test, y_train, y_test)
     
-    print("\n=== COURSE BENCHMARK RESULTS (W1-W6 MODELS) ===")
+    print("\n=== COURSE BENCHMARK RESULTS (W1-W10 MODELS WITH TF-IDF) ===")
     print(benchmark_df.to_string(index=False))
