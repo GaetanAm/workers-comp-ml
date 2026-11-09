@@ -4,8 +4,12 @@ venv/
 __pycache__/
 *.pyc
 
-# Jeux de données volumineux (à conserver uniquement en local)
+# Jeux de données volumineux & Caches de calculs (à conserver uniquement en local)
 *.csv
+*.npy
+
+# Checkpoints et dossiers de fine-tuning Hugging Face
+distilbert_finetuned/
 
 # Fichiers temporaires de compilation LaTeX
 *.aux
