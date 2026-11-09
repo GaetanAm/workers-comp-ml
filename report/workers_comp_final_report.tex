@@ -15,7 +15,7 @@
 \usepackage{tabularx}
 \usepackage{balance}
 
-% Image search path for notebooks relative to report/
+% Chemins vers les images
 \graphicspath{{../notebooks/}{./notebooks/}{./}{../}}
 
 \definecolor{navyblue}{RGB}{16, 44, 87}
@@ -88,10 +88,7 @@ To prevent mathematical overflow during inverse transformation, predictions are 
 \subsection{Feature Engineering \& Leak-Proof Preprocessing}
 We construct a domain-specific feature, \texttt{ReportDelayDays}, measuring the elapsed time between accident occurrence and formal insurer notification. To prevent column overflow, we wrap the division explicitly:
 \begin{equation}
-\begin{aligned}
-\text{ReportDelayDays} = \max\Biggl(0, \, &\frac{1}{86400} \Big(\text{DateReported} \\
-&- \text{DateTimeOfAccident}\Big)\Biggr)
-\end{aligned}
+\text{ReportDelayDays} = \frac{\text{DateTimeOfAccident} - \text{DateReported}}{86400 \text{ seconds}}
 \end{equation}
 To prevent data leakage, we partition the 100,000 records into an 80\% training set (80,000 claims) and a 20\% held-out test set (20,000 claims) using a fixed random seed (\texttt{random\_state=42}).
 
@@ -160,7 +157,7 @@ Using the 32 PCA components, we apply \textbf{K-Means Clustering ($k=4$)} to unc
 In Strategy B, we fine-tune DistilBERT end-to-end for log-cost regression using PyTorch \texttt{Trainer} (2 epochs, lr $2\times 10^{-5}$). In Strategy C, we stack DistilBERT log-predictions into LightGBM. While stacking achieves strong metrics, we note that production deployment requires Out-Of-Fold (OOF) cross-validation predictions to eliminate in-sample meta-learning bias.
 
 \section{Operational Risk Triage \& Human Baseline Comparison}
-Evaluating models strictly on continuous regression metrics obscures their operational value in casualty insurance. We define ground-truth severity as claims exceeding the 90th cost percentile of the training set (\$15,219). These top 10% claims represent \textbf{\$202.11M out of \$227.88M (88.7\%)} of total portfolio losses.
+Evaluating models strictly on continuous regression metrics obscures their operational value in casualty insurance. We define ground-truth severity as claims exceeding the 90th cost percentile of the training set (\$15,219). These top 10\% claims represent \textbf{\$202.11M out of \$227.88M (88.7\%)} of total portfolio losses.
 
 To evaluate operational utility, we compare our model triage against a \textbf{Human Adjuster Baseline} (\texttt{InitialCaseEstimate}) and a \textbf{Random Selection Baseline}.
 
@@ -230,7 +227,7 @@ Re-fitting LightGBM on this compact 100-feature space yields identical predictiv
 \subsection{Champion Model Setup}
 Combining Optuna tuned hyperparameters (\texttt{n\_estimators=500}, \texttt{learning\_rate=0.02}, \texttt{num\_leaves=127}, \texttt{reg\_alpha=10.0}) with the Top 100 SHAP-pruned feature space yields our \textbf{Champion Model}:
 \begin{itemize}
-    \item \textbf{Test MAE:} \$10,534.34 (+$655.20/claim savings over baseline).
+    \item \textbf{Test MAE:} \$10,534.34 (+\$655.20/claim savings over baseline).
     \item \textbf{Log-Scale Variance Explained:} $R^2_{\log} = \mathbf{0.4520}$.
     \item \textbf{Triage ROC-AUC:} \textbf{0.8620}.
     \item \textbf{Training Latency:} 6.52 seconds on CPU.
@@ -249,9 +246,9 @@ While dollar-scale $R^2$ remains modest ($0.0183$), $R^2_{\log} = 0.4520$ proves
 \subsection{Failure Modes Audit (False Negatives)}
 We audit the 5 worst False Negatives (actual severe claims $> \$750,000$ predicted as routine):
 \begin{itemize}
-    \item \textbf{Case \#7301:} Actual \$1,669,706 | Pred \$3,685 | Initial Est. \$25,500. Text: \textit{"UNLOADING GLASS STRAINED LOWER BACK"}.
-    \item \textbf{Case \#8569:} Actual \$824,875 | Pred \$427 | Initial Est. \$1,500. Text: \textit{"SLIPPED FOOT FINGER AND HAND RIGHT MIDDLE FINGER"}.
-    \item \textbf{Case \#10430:} Actual \$792,388 | Pred \$1,676 | Initial Est. \$4,795. Report Delay: 157.4 days. Text: \textit{"AND ON WAY HEADACHES HAND AND NECK"}.
+    \item \textbf{Case \#7301:} Actual \$1,669,706 $\mid$ Pred \$3,685 $\mid$ Initial Est. \$25,500. Text: \textit{"UNLOADING GLASS STRAINED LOWER BACK"}.
+    \item \textbf{Case \#8569:} Actual \$824,875 $\mid$ Pred \$427 $\mid$ Initial Est. \$1,500. Text: \textit{"SLIPPED FOOT FINGER AND HAND RIGHT MIDDLE FINGER"}.
+    \item \textbf{Case \#10430:} Actual \$792,388 $\mid$ Pred \$1,676 $\mid$ Initial Est. \$4,795. Report Delay: 157.4 days. Text: \textit{"AND ON WAY HEADACHES HAND AND NECK"}.
 \end{itemize}
 \textbf{Actuarial Interpretation:} Failure modes stem from \textit{human initial under-reserving} (which anchors the model's top feature) and \textit{unobserved clinical escalations} (e.g., spinal fusion surgeries or chronic disability litigation occurring months post-intake) that are inherently absent in FNOL text notes.
 
@@ -265,15 +262,15 @@ We audit the 5 worst False Negatives (actual severe claims $> \$750,000$ predict
 \setlength{\tabcolsep}{3pt}
 \begin{tabularx}{\linewidth}{@{} l c r r c c c X @{}}
 \toprule
-\textbf{Architecture} & \textbf{Dim} & \textbf{MAE (\$)} & \textbf{RMSE (\$)} & $\mathbf{R^2_{\text{dollar}}}$ & $\mathbf{R^2_{\text{log}}}$ & \textbf{AUC} & \textbf{Key Milestone} \\
+\textbf{Architecture} & \textbf{Dim} & \textbf{MAE (\$)} & \textbf{RMSE (\$)} & $\mathbf{R^2_{\text{dollar}}}$ & $\mathbf{R^2_{\text{log}}}$ & \textbf{AUC} & \textbf{Milestone} \\
 \midrule
 Dummy Mean Baseline                & 0     & 11,189.54 & 50,442.06 & -0.0460 & 0.0000 & 0.5000 & Naive Baseline \\
-Lasso Regression (Linear)          & 15    & 12,292.03 & 77,954.11 & -1.4983 & 0.1240 & 0.7420 & Linear Regularization \\
+Lasso Regression (Linear)          & 15    & 12,292.03 & 77,954.11 & -1.4983 & 0.1240 & 0.7420 & Linear Reg. \\
 LightGBM (Tabular Only)            & 15    & 10,568.10 & 48,870.00 & +0.0181 & 0.4210 & 0.8410 & Tree Baseline \\
-LightGBM + TF-IDF (300 n-grams)    & 315   & 10,551.61 & 48,864.09 & +0.0184 & 0.4280 & 0.8540 & Text Keywords \\
-LightGBM + TF-IDF (1,000 n-grams)  & 1,015 & 10,547.70 & 48,785.79 & +0.0215 & 0.4350 & 0.8585 & Expanded Text \\
+LightGBM + TF-IDF (300)            & 315   & 10,551.61 & 48,864.09 & +0.0184 & 0.4280 & 0.8540 & Text Keywords \\
+LightGBM + TF-IDF (1,000)          & 1,015 & 10,547.70 & 48,785.79 & +0.0215 & 0.4350 & 0.8585 & Expanded Text \\
 LightGBM + Raw DistilBERT (768d)   & 783   & 10,567.78 & 48,901.37 & +0.0169 & 0.4180 & 0.8520 & Dense Embeddings \\
-Strategy A: PCA DistilBERT (32d)   & 1,047 & 10,549.93 & 48,817.48 & +0.0203 & 0.4410 & 0.8609 & 79.86\% PCA Variance \\
+Strategy A: PCA DistilBERT (32d)   & 1,047 & 10,549.93 & 48,817.48 & +0.0203 & 0.4410 & 0.8609 & 79.86\% Variance \\
 Strategy B/C: Stacked DistilBERT   & 1,048 & 10,538.63 & 48,759.28 & +0.0226 & 0.4460 & 0.8615 & End-to-End Stacking \\
 Strategy A + Tuning                & 1,047 & 10,535.92 & 48,870.21 & +0.0181 & 0.4480 & 0.8612 & RandomizedSearchCV \\
 \textbf{Champion: Top 100 SHAP}    & \textbf{100} & \textbf{10,534.34} & \textbf{48,848.13} & \textbf{+0.0190} & \textbf{0.4520} & \textbf{0.8620} & \textbf{Occam's Razor ($10\times$ Faster)} \\
